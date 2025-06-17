@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Temperatura y Lluvia Maschwitz</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #00d4ff;
+      font-family: sans-serif;
+      padding: 1rem;
+    }
+    .fuente {
+      margin-bottom: 1rem;
+    }
+    .fuente span {
+      font-weight: bold;
+    }
+    .wunderground-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: #00d4ff;
+      text-decoration: none;
+      border: 1px solid #00d4ff;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    .wunderground-link:hover {
+      background-color: #003366;
+    }
+  </style>
+</head>
+<body>
+  <h2>Datos meteorológicos en Ingeniero Maschwitz</h2>
+
+  <div class="fuente" id="openmeteo">Open-Meteo: Cargando...</div>
+  <div class="fuente" id="openweather">OpenWeather: Cargando...</div>
+  <div class="fuente" id="wunderground-temp">Wunderground (CCMB50): Cargando temperatura...</div>
+  <div class="fuente" id="wunderground-rain">Wunderground (CCMB50): Cargando lluvia...</div>
+
+  <a href="https://www.wunderground.com/dashboard/pws/IINGEN39" 
+     target="_blank" 
+     class="wunderground-link">
+     Ver detalles en Wunderground
+  </a>
+
+  <script>
+    // Coordenadas específicas de Ingeniero Maschwitz
+    const lat = -34.3845;
+    const lon = -58.7356;
+
+    // API Keys
+    const apiKeyOpenWeather = "52b3db6f3db08d7602d714b39d519d69";
+    const apiKeyWunderground = "6532d6454b8aa370768e63d6ba5a832e";
+
+    // URLs
+    const urlMeteo = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`;
+    const urlWeather = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=es&appid=${apiKeyOpenWeather}`;
+    const urlWunderground = `https://api.weather.com/v2/pws/observations/current?stationId=IINGEN39&format=json&units=m&apiKey=${apiKeyWunderground}`;
+
+    // Función para actualizar todos los datos
+    function actualizarDatos() {
+      // Fetch Open-Meteo
+      fetch(urlMeteo)
+        .then(response => response.json())
+        .then(data => {
+          const temp = data.current.temperature_2m;
+          document.getElementById('openmeteo').innerHTML = `<span>Open-Meteo:</span> ${temp.toFixed(1)} °C`;
+        })
+        .catch(() => {
+          document.getElementById('openmeteo').innerText = 'Open-Meteo: Error al cargar';
+        });
+
+      // Fetch OpenWeather
+      fetch(urlWeather)
+        .then(response => response.json())
+        .then(data => {
+          const temp = data.main.temp;
+          document.getElementById('openweather').innerHTML = `<span>OpenWeather:</span> ${temp.toFixed(1)} °C`;
+        })
+        .catch(() => {
+          document.getElementById('openweather').innerText = 'OpenWeather: Error al cargar';
+        });
+
+      // Fetch Wunderground (temperatura y lluvia)
+      fetch(urlWunderground)
+        .then(response => response.json())
+        .then(data => {
+          if (data.observations && data.observations.length > 0) {
+            const obs = data.observations[0];
+            const temp = obs.metric.temp;
+            const rain = obs.metric.precipTotal || 'No disponible';
+            const hora = new Date(obs.obsTimeLocal).toLocaleTimeString('es-AR');
+            
+            document.getElementById('wunderground-temp').innerHTML = 
+              `<span>Wunderground (CCMB50):</span> ${temp.toFixed(1)} °C (${hora})`;
+            
+            document.getElementById('wunderground-rain').innerHTML = 
+              `<span>Lluvia acumulada:</span> ${rain} mm (${hora})`;
+          } else {
+            document.getElementById('wunderground-temp').innerText = 'Wunderground: No hay datos recientes';
+            document.getElementById('wunderground-rain').innerText = 'Wunderground: No hay datos de lluvia';
+          }
+        })
+        .catch(() => {
+          document.getElementById('wunderground-temp').innerHTML = 
+            'Wunderground: Error al cargar temperatura';
+          document.getElementById('wunderground-rain').innerHTML = 
+            'Wunderground: Error al cargar lluvia - <a href="https://www.wunderground.com/dashboard/pws/IINGEN39" target="_blank" style="color:#00d4ff;">Ver manualmente</a>';
+        });
+    }
+
+    // Actualizar datos inmediatamente y cada 5 minutos
+    actualizarDatos();
+    setInterval(actualizarDatos, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
